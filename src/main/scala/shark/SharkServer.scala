@@ -27,7 +27,9 @@ object SharkServer {
   SharkEnv.init
 
   val serverEnv = SparkEnv.get
-
+  
+  var server: TThreadPoolServer = null
+  
   def main(args: Array[String]) {
     LogUtils.initHiveLog4j();
 
@@ -43,7 +45,7 @@ object SharkServer {
     ttServerArgs.minWorkerThreads(minWorkerThreads)
     ttServerArgs.transportFactory(new TTransportFactory())
     ttServerArgs.protocolFactory(new TBinaryProtocol.Factory())
-    val server = new TThreadPoolServer(ttServerArgs)
+    server = new TThreadPoolServer(ttServerArgs)
 
     // Stop the server and clean up the Shark environment when we exit
     Runtime.getRuntime().addShutdownHook(
@@ -60,7 +62,8 @@ object SharkServer {
     LOG.info("Starting shark server on port " + port)
     server.serve()
   }
-
+  
+  def stop() = if(server !=null) server.stop
 }
 
 class SharkHiveProcessingFactory(processor: TProcessor, conf: HiveConf)

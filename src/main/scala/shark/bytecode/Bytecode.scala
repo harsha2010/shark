@@ -19,9 +19,11 @@ object V1_6 extends Version {
 
 
 class Bytecode(val className: String,
+  val interfaces: Array[String] =  Array[String](),
   val superClassName: String = classOf[Object].getName,
   defaultConstructor: Boolean = true,
-  version: Version = V1_6, modifiers:Array[AccessFlag] = Array(PUBLIC)) {
+  version: Version = V1_6, 
+  modifiers:Array[AccessFlag] = Array(PUBLIC)) {
 
   val cw: ClassWriter = new ClassWriter(0)
   val cv: ClassVisitor = {
@@ -30,7 +32,7 @@ class Bytecode(val className: String,
       Bytecode.classNameInVM(className),
       null,
       Bytecode.classNameInVM(superClassName),
-      null)
+      interfaces.map(i => Bytecode.classNameInVM(i)))
     visitor
   }
 
@@ -42,7 +44,8 @@ class Bytecode(val className: String,
     name: String,
     parameters: Array[_ <: Manifest[_]] = Array[Manifest[_]](),
     returnType: Manifest[_] = Unit)(insns: MethodInsn*) = {
-    val mv: MethodVisitor = cv.visitMethod(ACC_PUBLIC, name, Bytecode.methodDescriptor(parameters, returnType), null, null)
+    val signature = Bytecode.methodDescriptor(parameters, returnType)
+    val mv: MethodVisitor = cv.visitMethod(ACC_PUBLIC, name, signature, null, null)
     mv.visitCode
     insns.foreach(insn => insn(mv))
     mv.visitEnd
@@ -89,11 +92,20 @@ case class LDC(x: Any) extends MethodInsn {
 object ACONST_NULL extends MethodInsn {
   override def apply(mv: MethodVisitor) = mv.visitInsn(Opcodes.ACONST_NULL)
 }
+object ICONST_0 extends MethodInsn {
+  override def apply(mv: MethodVisitor) = mv.visitInsn(Opcodes.ICONST_0)
+}
 case class ISTORE(x: Int) extends MethodInsn {
   override def apply(mv: MethodVisitor) = mv.visitVarInsn(Opcodes.ISTORE, x)
 }
 case class ASTORE(x: Int) extends MethodInsn {
   override def apply(mv: MethodVisitor) = mv.visitVarInsn(Opcodes.ASTORE, x)
+}
+object AALOAD extends MethodInsn {
+  override def apply(mv: MethodVisitor) = mv.visitInsn(Opcodes.AALOAD)
+}
+object AASTORE extends MethodInsn {
+  override def apply(mv: MethodVisitor) = mv.visitInsn(Opcodes.AASTORE)
 }
 object IADD extends MethodInsn {
   override def apply(mv: MethodVisitor) = mv.visitInsn(Opcodes.IADD)
@@ -106,6 +118,15 @@ object IMUL extends MethodInsn {
 }
 object IDIV extends MethodInsn {
   override def apply(mv: MethodVisitor) = mv.visitInsn(Opcodes.IDIV)
+}
+object ARRAYLENGTH extends MethodInsn {
+  override def apply(mv: MethodVisitor) = mv.visitInsn(Opcodes.ARRAYLENGTH)
+}
+case class ANEWARRAY(m: Manifest[_]) extends MethodInsn {
+  override def apply(mv: MethodVisitor) = mv.visitTypeInsn(Opcodes.ANEWARRAY, "java/lang/Object")
+}
+object DUP extends MethodInsn {
+  override def apply(mv: MethodVisitor) = mv.visitInsn(Opcodes.DUP)
 }
 case class DISPATCH(dispatchType: DispatchType = INVOKEVIRTUAL, owner: String,
   name: String, parameters: Array[Manifest[_]] = Array(),
@@ -159,7 +180,12 @@ object Bytecode {
   def classDescriptor(k: Manifest[_]) = k match {
     case Unit => "V"
     case Int => "I"
-    case _ => "L" + classNameInVM(k.erasure.getName()) + ";"
+    case _ => {
+      val klass = k.erasure
+      if(klass.isArray()) {
+        "[L" + classNameInVM(klass.getComponentType().getName()) + ";"
+      }else "L" + classNameInVM(k.erasure.getName()) + ";"
+    }
   }
   
   def methodDescriptor(parameters: Array[_ <: Manifest[_]], returnType: Manifest[_]) = {
@@ -179,4 +205,8 @@ object Bytecode {
     CheckClassAdapter.verify(new ClassReader(bytes),false, new PrintWriter(output))
     output.toString()
   }
+  
+  def arrayManifest[T](implicit m: Manifest[T]): Manifest[_]  = arrayType(m)
+  
+  def classManifest[T](implicit m: Manifest[T]): Manifest[_] = m
 }

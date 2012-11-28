@@ -135,7 +135,7 @@ class BytecodeTest {
     val evaluateMthd = klass.getDeclaredMethod("evaluate", classOf[ExprNodeEvaluator], classOf[AnyRef])
     //val resultO = eval.evaluate(r.o).asInstanceOf[List[_]]
     val resultO = evaluateMthd.invoke(instance, eval, r.o).asInstanceOf[List[_]]
-    assertEquals(resultO.size, 2)
+    assertEquals(resultO.size, 3)
   }
 
   class BytecodeLoader(bytes: Array[Byte]) extends ClassLoader {

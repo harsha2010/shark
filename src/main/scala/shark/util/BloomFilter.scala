@@ -58,17 +58,22 @@ class BloomFilter(numBitsPerElement: Double, expectedSize: Int, numHashes: Int)
 
   
   private def hash(data: Array[Byte], n: Int): Seq[Int] = {
+    val s = (ceil (n / 4.0)).toInt
+    val l = 4 * s
     val a = new Array[Int](n)
-    Range(0, n % 4).foreach {
+    Range(0, s).foreach {
       i => {
-        val h: Array[Long] = MurmurHash3.hash(data, SEED + i)
-        a(i) = h(0).toInt.abs
-        var j = i + 1 
-        if (j < n) a(j) = (h(0) >> 32).toInt.abs
+        val u = MurmurHash3.hash(data, SEED + i)
+        a(i) = u(0).toInt.abs
+        var j = i + 1
+        if (j < n)
+        a(j) = (u(0) >> 32).toInt.abs
         j += 1
-        if (j < n) a(j) = h(1).toInt.abs
+        if (j < n)
+        a(j) = u(1).toInt.abs
         j += 1
-        if (j < n) a(j) = (h(1) >> 32).toInt.abs
+        if (j < n)
+        a(j) = (u(1) >> 32).toInt.abs
       }
     }
     a

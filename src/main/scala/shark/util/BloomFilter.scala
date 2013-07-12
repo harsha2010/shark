@@ -21,7 +21,7 @@ import scala.collection.mutable.ArrayBuffer
 class BloomFilter(numBitsPerElement: Double, expectedSize: Int, numHashes: Int) 
 	extends AnyRef with Serializable{
 
-  val SEED = System.getProperty("shark.bloomfilter.seed","1234567890").toInt
+  val SEED = System.getProperty("shark.bloomfilter.seed","123456789").toInt
   val bitSetSize = ceil(numBitsPerElement * expectedSize).toInt
   val bitSet = new BitSet(bitSetSize)
 
@@ -127,6 +127,7 @@ class BloomFilter(numBitsPerElement: Double, expectedSize: Int, numHashes: Int)
       j += 1
       if (j < n)
         a(j) = results(3).abs
+
       i += 1
     }
     a
